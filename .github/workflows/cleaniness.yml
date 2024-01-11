@@ -1,0 +1,23 @@
+name: Code Cleaniness
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  code_cleaniness_checks:
+    name: Formatting Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Rust
+        uses: hecrj/setup-rust-action@v2
+        with:
+          rust-version: nightly
+          components: rustfmt
+      - uses: actions/checkout@v4
+      - run: cargo fmt --check
