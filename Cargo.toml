@@ -7,5 +7,5 @@ edition = "2021"
 
 [dependencies]
 ratatui = { version = "0.25", default-features = false }
-web-sys = { version = "0.3.66", features = ["Screen"] }
+web-sys = { version = "0.3", features = ["Window", "Screen", "TouchEvent", "TouchList", "Touch"] }
 yew = { version = "0.21", features = ["csr"] }

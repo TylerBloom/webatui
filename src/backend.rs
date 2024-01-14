@@ -1,5 +1,6 @@
 // TODO:
 //  - Improve the calculations for the character grid.
+//  - Explicit set font size, margins, etc (we can't rely on the user defining CSS for us)
 
 use ratatui::{
     buffer::Cell,

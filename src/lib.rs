@@ -1,28 +1,24 @@
 #![allow(dead_code)]
 
-// Design goals:
-//  - Some users want a single-page, plug-and-play expirence. For them, it should be as easy as
-//  possible to port their existing TUI app to a web app
-//  - Some users want the full flexiblity of Yew, specifically the use of the Yew router.
-//  - Users should have access to the temrinal renderer... somehow...
-//  -
-
 // Needed:
-//  - Type that implements Component and wraps a user's type
-//  - Trait for users to implement that make the wrapper component a component
-//  - Basic web terminal
-//  - Add scroll processing for inner apps
 //  - Find an easy way for users to get callbacks specific to their message type
+//  - Users should have access to the temrinal renderer... somehow...
 
-use std::cell::RefCell;
+use std::{cell::RefCell, cmp::Ordering, rc::Rc};
 
 use backend::{DehydratedSpan, YewBackend};
 use ratatui::{prelude::Rect, Frame, Terminal};
+use touch_scroll::TouchScroll;
+use web_sys::{
+    js_sys::Function,
+    wasm_bindgen::{prelude::Closure, JsValue},
+    TouchEvent, WheelEvent,
+};
 use yew::{Component, Context, Properties};
 
 pub mod backend;
+mod touch_scroll;
 
-// TODO: Needs to set up callbacks to resize backend's buffers
 /// A container for a TUI app that renders to HTML.
 pub struct WebTerminal<A> {
     app: A,
@@ -32,6 +28,14 @@ pub struct WebTerminal<A> {
 /// In the public API because of the component impl of WebTerminal
 pub enum WebTermMessage<M> {
     Inner(M),
+    Resized,
+    Scrolled(ScrollMotion),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ScrollMotion {
+    Up,
+    Down,
 }
 
 impl<M> WebTermMessage<M> {
@@ -72,7 +76,14 @@ pub trait TerminalApp: 'static + Clone + PartialEq {
     #[allow(unused_variables)]
     fn setup(&mut self, ctx: &Context<WebTerminal<Self>>) {}
 
-    // TODO: Add (optional) scroll and resize methods
+    // TODO: Add optional resize method
+
+    /// Allows the app to initialize its environment, such as setting up callbacks to window
+    /// events.
+    #[allow(unused_variables)]
+    fn scroll(&mut self, scroll: ScrollMotion) -> bool {
+        false
+    }
 
     /// Updates the app with a message.
     fn update(&mut self, ctx: &Context<WebTerminal<Self>>, msg: Self::Message) -> bool;
@@ -94,24 +105,85 @@ impl<A: TerminalApp> Component for WebTerminal<A> {
         let mut app = ctx.props().inner.clone();
         app.setup(ctx);
         let term = RefCell::new(Terminal::new(YewBackend::new()).unwrap());
-        // TODO:
-        //  - Set scroll callbacks (for both standard scroll and touch scroll)
-        //  - Set resize callback
+        /* ---------- Window callback setup --------- */
+        let window = web_sys::window().unwrap();
+        // Bind a function to the "on-resize" window event
+        let cb = ctx.link().callback(|()| WebTermMessage::Resized);
+        let func = move || cb.emit(());
+        let func: Function = Closure::<dyn 'static + Fn()>::new(func)
+            .into_js_value()
+            .into();
+        window.set_onresize(Some(&func));
+        // Bind a function to the "on-wheel" window event
+        let cb = ctx.link().callback(|msg: Self::Message| msg);
+        let func = move |event: JsValue| {
+            let event: WheelEvent = event.into();
+            match event.delta_y().partial_cmp(&0.0) {
+                Some(Ordering::Less) => cb.emit(WebTermMessage::Scrolled(ScrollMotion::Down)),
+                Some(Ordering::Greater) => cb.emit(WebTermMessage::Scrolled(ScrollMotion::Up)),
+                _ => {}
+            }
+        };
+        let func: Function = Closure::<dyn 'static + Fn(JsValue)>::new(func)
+            .into_js_value()
+            .into();
+        window.set_onwheel(Some(&func));
+
+        // In order to emulate scrolling on mobile, a simple (perhaps too simple) approach is
+        // taken. Touch events are started in an accumulator behind a `RefCell`. This accumulator
+        // tracks when two touches should be connected and tracks the overall progress. When enough
+        // progress has been made, a scroll message is emitted. This approach is a bit naive, but
+        // we're going for functional first
+
+        // Bind a function to the "touch-start" window event
+        let acc = Rc::new(RefCell::new(TouchScroll::new()));
+        let acc_start = Rc::clone(&acc);
+        let func = move |event: JsValue| {
+            let event: TouchEvent = event.into();
+            if let Some(touch) = event.touches().get(0) {
+                acc_start.borrow_mut().init_touch(&touch);
+            }
+        };
+        let func: Function = Closure::<dyn 'static + Fn(JsValue)>::new(func)
+            .into_js_value()
+            .into();
+        window.set_ontouchstart(Some(&func));
+
+        // Bind a function to the "touch-move" window event
+        let acc_move = Rc::clone(&acc);
+        let cb = ctx.link().callback(|msg: Self::Message| msg);
+        let func = move |event: JsValue| {
+            let event: TouchEvent = event.into();
+            if let Some(touch) = event.touches().get(0) {
+                acc_move
+                    .borrow_mut()
+                    .add_touch(&touch)
+                    .for_each(|scroll| cb.emit(WebTermMessage::Scrolled(scroll)));
+            }
+        };
+        let func: Function = Closure::<dyn 'static + Fn(JsValue)>::new(func)
+            .into_js_value()
+            .into();
+        window.set_ontouchmove(Some(&func));
         Self { app, term }
     }
 
-    #[allow(unused_variables)]
     fn update(&mut self, ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
             WebTermMessage::Inner(msg) => self.app.update(ctx, msg),
+            WebTermMessage::Scrolled(dir) => self.app.scroll(dir),
+            WebTermMessage::Resized => {
+                self.term.get_mut().backend_mut().resize_buffer();
+                true
+            }
         }
     }
 
-    #[allow(unused_variables)]
     fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
         let mut term = self.term.borrow_mut();
         let area = term.size().unwrap();
         term.draw(|frame| self.app.render(area, frame)).unwrap();
-        term.backend_mut().hydrate(|span| self.app.hydrate(ctx, span))
+        term.backend_mut()
+            .hydrate(|span| self.app.hydrate(ctx, span))
     }
 }
