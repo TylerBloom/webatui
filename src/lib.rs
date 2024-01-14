@@ -11,12 +11,14 @@
 //  - Type that implements Component and wraps a user's type
 //  - Trait for users to implement that make the wrapper component a component
 //  - Basic web terminal
+//  - Add scroll processing for inner apps
+//  - Find an easy way for users to get callbacks specific to their message type
 
 use std::cell::RefCell;
 
-use backend::{YewBackend, DehydratedSpan};
-use ratatui::{Terminal, prelude::Rect, Frame};
-use yew::{Component, Properties};
+use backend::{DehydratedSpan, YewBackend};
+use ratatui::{prelude::Rect, Frame, Terminal};
+use yew::{Component, Context, Properties};
 
 pub mod backend;
 
@@ -32,32 +34,56 @@ pub enum WebTermMessage<M> {
     Inner(M),
 }
 
+impl<M> WebTermMessage<M> {
+    pub fn new<I: Into<M>>(inner: I) -> Self {
+        Self::Inner(inner.into())
+    }
+}
+
+impl<M> From<M> for WebTermMessage<M> {
+    fn from(value: M) -> Self {
+        Self::Inner(value)
+    }
+}
+
 /// In the public API because of the component impl of WebTerminal
 #[derive(Properties, PartialEq)]
 pub struct WebTermProps<M: PartialEq> {
-    inner: M,
+    pub inner: M,
+}
+
+impl<M: PartialEq> WebTermProps<M> {
+    pub fn new(inner: M) -> Self {
+        Self { inner }
+    }
 }
 
 /// The core user-facing abstraction of this crate. A terminal app is a type that can be wrapped by
 /// a [`WebTerminal`] and be displayed by Yew.
+///
+/// Because the app needs to be passed via properties, it needs to be `'static`, `Clone`, and
+/// `PartialEq`.
 pub trait TerminalApp: 'static + Clone + PartialEq {
     /// The message type that this type uses to update.
     type Message;
 
     /// Allows the app to initialize its environment, such as setting up callbacks to window
     /// events.
-    fn setup(&mut self) {}
+    #[allow(unused_variables)]
+    fn setup(&mut self, ctx: &Context<WebTerminal<Self>>) {}
+
+    // TODO: Add (optional) scroll and resize methods
 
     /// Updates the app with a message.
-    fn update(&mut self, msg: Self::Message) -> bool;
+    fn update(&mut self, ctx: &Context<WebTerminal<Self>>, msg: Self::Message) -> bool;
 
     /// Takes a Ratatui [`Frame`] and renders widgets onto it.
-    fn render(&self, area: Rect, frame: &mut Frame);
+    fn render(&self, area: Rect, frame: &mut Frame<'_>);
 
     /// Takes a dehydrated spans from the backend and hydrates them by adding callbacks,
     /// hyperlinks, etc.
     #[allow(unused_variables)]
-    fn hydrate(&self, span: &mut DehydratedSpan) {}
+    fn hydrate(&self, ctx: &Context<WebTerminal<Self>>, span: &mut DehydratedSpan) {}
 }
 
 impl<A: TerminalApp> Component for WebTerminal<A> {
@@ -66,15 +92,18 @@ impl<A: TerminalApp> Component for WebTerminal<A> {
 
     fn create(ctx: &yew::Context<Self>) -> Self {
         let mut app = ctx.props().inner.clone();
-        app.setup();
+        app.setup(ctx);
         let term = RefCell::new(Terminal::new(YewBackend::new()).unwrap());
+        // TODO:
+        //  - Set scroll callbacks (for both standard scroll and touch scroll)
+        //  - Set resize callback
         Self { app, term }
     }
 
     #[allow(unused_variables)]
     fn update(&mut self, ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            WebTermMessage::Inner(msg) => self.app.update(msg),
+            WebTermMessage::Inner(msg) => self.app.update(ctx, msg),
         }
     }
 
@@ -83,6 +112,6 @@ impl<A: TerminalApp> Component for WebTerminal<A> {
         let mut term = self.term.borrow_mut();
         let area = term.size().unwrap();
         term.draw(|frame| self.app.render(area, frame)).unwrap();
-        term.backend_mut().hydrate(|span| self.app.hydrate(span))
+        term.backend_mut().hydrate(|span| self.app.hydrate(ctx, span))
     }
 }
