@@ -17,6 +17,8 @@ use web_sys::{
 use yew::{Component, Context, Properties};
 
 pub mod backend;
+pub mod prelude;
+pub mod palette;
 mod touch_scroll;
 
 /// A container for a TUI app that renders to HTML.
