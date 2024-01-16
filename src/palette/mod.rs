@@ -1,19 +1,27 @@
+use std::fmt::Debug;
+
+use enum_dispatch::enum_dispatch;
 use ratatui::style::{Color, Style};
 
 /// This module contains the color palettes that are supported by [base16](). These can be
 /// converted into styles used by Ratatui.
-
 // TODO: Only a few palettes are implemented.
 //  - Except for Grubbox, everything past the "a"s is not done
-
 pub mod default;
+use default::*;
 
 #[cfg(feature = "apprentice")]
 pub mod apprentice;
+#[cfg(feature = "apprentice")]
+use apprentice::*;
 #[cfg(feature = "atelier")]
 pub mod atelier;
+#[cfg(feature = "atelier")]
+use atelier::*;
 #[cfg(feature = "atlas")]
 pub mod atlas;
+#[cfg(feature = "atlas")]
+use atlas::*;
 #[cfg(feature = "black_metal")]
 pub mod black_metal;
 #[cfg(feature = "brogrammer")]
@@ -54,6 +62,8 @@ pub mod gigavolt;
 pub mod github;
 #[cfg(feature = "gruvbox")]
 pub mod gruvbox;
+#[cfg(feature = "gruvbox")]
+use gruvbox::*;
 #[cfg(feature = "hardcore")]
 pub mod hardcore;
 #[cfg(feature = "heetch")]
@@ -146,6 +156,26 @@ pub mod woodland;
 pub mod xcode_dust;
 #[cfg(feature = "zenburn")]
 pub mod zenburn;
+
+#[enum_dispatch(Base16Palette)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Palette {
+    DefaultPalette,
+    #[cfg(feature = "apprentice")]
+    ApprenticePalette,
+    #[cfg(feature = "atelier")]
+    AtelierPalette,
+    #[cfg(feature = "atlas")]
+    AtlasPalette,
+    #[cfg(feature = "gruvbox")]
+    GruvboxPalette,
+}
+
+impl Default for Palette {
+    fn default() -> Self {
+        Self::DefaultPalette(default::DefaultPalette::default())
+    }
+}
 
 /// The universal representation of a Base16 color palette.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -252,61 +282,113 @@ mod create {
         $s15:literal,
         $s16:literal,
         ) => {
-            #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-            pub struct $name(pub crate::palette::Base16Color);
+            #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+            pub struct $name;
 
-            impl From<crate::palette::Base16Color> for $name {
-                fn from(other: crate::palette::Base16Color) -> Self {
-                    Self(other)
-                }
-            }
-
-            impl From<$name> for crate::palette::Base16Color {
-                fn from(other: $name) -> Self {
-                    other.0
-                }
-            }
-
-            impl crate::palette::Palette for $name {
-                fn to_rgb(self) -> (u8, u8, u8) {
-                    match self.into() {
-                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Dark(crate::palette::Shade::Darkest)) => hex_literal::hex!($s01).into(),
-                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Dark(crate::palette::Shade::Darker)) => hex_literal::hex!($s02).into(),
-                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Dark(crate::palette::Shade::Lighter)) => hex_literal::hex!($s03).into(),
-                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Dark(crate::palette::Shade::Lightest)) => hex_literal::hex!($s04).into(),
-                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Light(crate::palette::Shade::Darkest)) => hex_literal::hex!($s05).into(),
-                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Light(crate::palette::Shade::Darker)) => hex_literal::hex!($s06).into(),
-                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Light(crate::palette::Shade::Lighter)) => hex_literal::hex!($s07).into(),
-                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Light(crate::palette::Shade::Lightest)) => hex_literal::hex!($s08).into(),
-                        crate::palette::Base16Color::Accent(crate::palette::Base16Accent::Accent00) => hex_literal::hex!($s09).into(),
-                        crate::palette::Base16Color::Accent(crate::palette::Base16Accent::Accent01) => hex_literal::hex!($s10).into(),
-                        crate::palette::Base16Color::Accent(crate::palette::Base16Accent::Accent02) => hex_literal::hex!($s11).into(),
-                        crate::palette::Base16Color::Accent(crate::palette::Base16Accent::Accent03) => hex_literal::hex!($s12).into(),
-                        crate::palette::Base16Color::Accent(crate::palette::Base16Accent::Accent04) => hex_literal::hex!($s13).into(),
-                        crate::palette::Base16Color::Accent(crate::palette::Base16Accent::Accent05) => hex_literal::hex!($s14).into(),
-                        crate::palette::Base16Color::Accent(crate::palette::Base16Accent::Accent06) => hex_literal::hex!($s15).into(),
-                        crate::palette::Base16Color::Accent(crate::palette::Base16Accent::Accent07) => hex_literal::hex!($s16).into(),
+            impl crate::palette::Base16Palette for $name {
+                fn to_rgb(&self, color: crate::palette::Base16Color) -> (u8, u8, u8) {
+                    match color {
+                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Dark(
+                            crate::palette::Shade::Darkest,
+                        )) => hex_literal::hex!($s01).into(),
+                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Dark(
+                            crate::palette::Shade::Darker,
+                        )) => hex_literal::hex!($s02).into(),
+                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Dark(
+                            crate::palette::Shade::Lighter,
+                        )) => hex_literal::hex!($s03).into(),
+                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Dark(
+                            crate::palette::Shade::Lightest,
+                        )) => hex_literal::hex!($s04).into(),
+                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Light(
+                            crate::palette::Shade::Darkest,
+                        )) => hex_literal::hex!($s05).into(),
+                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Light(
+                            crate::palette::Shade::Darker,
+                        )) => hex_literal::hex!($s06).into(),
+                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Light(
+                            crate::palette::Shade::Lighter,
+                        )) => hex_literal::hex!($s07).into(),
+                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Light(
+                            crate::palette::Shade::Lightest,
+                        )) => hex_literal::hex!($s08).into(),
+                        crate::palette::Base16Color::Accent(
+                            crate::palette::Base16Accent::Accent00,
+                        ) => hex_literal::hex!($s09).into(),
+                        crate::palette::Base16Color::Accent(
+                            crate::palette::Base16Accent::Accent01,
+                        ) => hex_literal::hex!($s10).into(),
+                        crate::palette::Base16Color::Accent(
+                            crate::palette::Base16Accent::Accent02,
+                        ) => hex_literal::hex!($s11).into(),
+                        crate::palette::Base16Color::Accent(
+                            crate::palette::Base16Accent::Accent03,
+                        ) => hex_literal::hex!($s12).into(),
+                        crate::palette::Base16Color::Accent(
+                            crate::palette::Base16Accent::Accent04,
+                        ) => hex_literal::hex!($s13).into(),
+                        crate::palette::Base16Color::Accent(
+                            crate::palette::Base16Accent::Accent05,
+                        ) => hex_literal::hex!($s14).into(),
+                        crate::palette::Base16Color::Accent(
+                            crate::palette::Base16Accent::Accent06,
+                        ) => hex_literal::hex!($s15).into(),
+                        crate::palette::Base16Color::Accent(
+                            crate::palette::Base16Accent::Accent07,
+                        ) => hex_literal::hex!($s16).into(),
                     }
                 }
 
-                fn to_rgb_str(self) -> &'static str{
-                    match self.into() {
-                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Dark(crate::palette::Shade::Darkest)) => $s01,
-                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Dark(crate::palette::Shade::Darker)) => $s02,
-                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Dark(crate::palette::Shade::Lighter)) => $s03,
-                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Dark(crate::palette::Shade::Lightest)) => $s04,
-                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Light(crate::palette::Shade::Darkest)) => $s05,
-                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Light(crate::palette::Shade::Darker)) => $s06,
-                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Light(crate::palette::Shade::Lighter)) => $s07,
-                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Light(crate::palette::Shade::Lightest)) => $s08,
-                        crate::palette::Base16Color::Accent(crate::palette::Base16Accent::Accent00) => $s09,
-                        crate::palette::Base16Color::Accent(crate::palette::Base16Accent::Accent01) => $s10,
-                        crate::palette::Base16Color::Accent(crate::palette::Base16Accent::Accent02) => $s11,
-                        crate::palette::Base16Color::Accent(crate::palette::Base16Accent::Accent03) => $s12,
-                        crate::palette::Base16Color::Accent(crate::palette::Base16Accent::Accent04) => $s13,
-                        crate::palette::Base16Color::Accent(crate::palette::Base16Accent::Accent05) => $s14,
-                        crate::palette::Base16Color::Accent(crate::palette::Base16Accent::Accent06) => $s15,
-                        crate::palette::Base16Color::Accent(crate::palette::Base16Accent::Accent07) => $s16,
+                fn to_hex_str(&self, color: crate::palette::Base16Color) -> &'static str {
+                    match color {
+                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Dark(
+                            crate::palette::Shade::Darkest,
+                        )) => std::concat!("#", $s01),
+                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Dark(
+                            crate::palette::Shade::Darker,
+                        )) => std::concat!("#", $s02),
+                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Dark(
+                            crate::palette::Shade::Lighter,
+                        )) => std::concat!("#", $s03),
+                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Dark(
+                            crate::palette::Shade::Lightest,
+                        )) => std::concat!("#", $s04),
+                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Light(
+                            crate::palette::Shade::Darkest,
+                        )) => std::concat!("#", $s05),
+                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Light(
+                            crate::palette::Shade::Darker,
+                        )) => std::concat!("#", $s06),
+                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Light(
+                            crate::palette::Shade::Lighter,
+                        )) => std::concat!("#", $s07),
+                        crate::palette::Base16Color::Shade(crate::palette::Base16Shade::Light(
+                            crate::palette::Shade::Lightest,
+                        )) => std::concat!("#", $s08),
+                        crate::palette::Base16Color::Accent(
+                            crate::palette::Base16Accent::Accent00,
+                        ) => std::concat!("#", $s09),
+                        crate::palette::Base16Color::Accent(
+                            crate::palette::Base16Accent::Accent01,
+                        ) => std::concat!("#", $s10),
+                        crate::palette::Base16Color::Accent(
+                            crate::palette::Base16Accent::Accent02,
+                        ) => std::concat!("#", $s11),
+                        crate::palette::Base16Color::Accent(
+                            crate::palette::Base16Accent::Accent03,
+                        ) => std::concat!("#", $s12),
+                        crate::palette::Base16Color::Accent(
+                            crate::palette::Base16Accent::Accent04,
+                        ) => std::concat!("#", $s13),
+                        crate::palette::Base16Color::Accent(
+                            crate::palette::Base16Accent::Accent05,
+                        ) => std::concat!("#", $s14),
+                        crate::palette::Base16Color::Accent(
+                            crate::palette::Base16Accent::Accent06,
+                        ) => std::concat!("#", $s15),
+                        crate::palette::Base16Color::Accent(
+                            crate::palette::Base16Accent::Accent07,
+                        ) => std::concat!("#", $s16),
                     }
                 }
             }
@@ -316,84 +398,79 @@ mod create {
     pub(crate) use create_palette;
 }
 
+#[enum_dispatch]
+pub trait Base16Palette {
+    fn to_rgb(&self, color: Base16Color) -> (u8, u8, u8);
+    fn to_hex_str(&self, color: Base16Color) -> &'static str;
+}
 
-/// A simple trait to extend the iterface of GruvboxColor.
-pub trait Palette: From<Base16Color> + Into<Base16Color> + Copy {
-    fn to_rgb(self) -> (u8, u8, u8);
-    fn to_rgb_str(self) -> &'static str;
-
+impl Base16Color {
     // Provided methods
     /// Creates a style from this color and the given color. This color will be used as the
     /// foreground while the given color will be used as the background.
-    fn full_style(self, other: Self) -> Style {
-        Style::new().fg(self.to_rgb_color()).bg(other.to_rgb_color())
+    pub const fn full_style(self, other: Self) -> Style {
+        Style::new().fg(self.to_color()).bg(other.to_color())
     }
 
     /// Creates a style using the default foreground and background colors.
-    fn default_style() -> Style {
+    pub const fn default_style() -> Style {
         Self::default_fg().full_style(Self::default_bg())
     }
 
     /// Creates a style using this color as the foreground and the default background color as the
     /// background.
-    fn fg_style(self) -> Style {
+    pub const fn fg_style(self) -> Style {
         self.full_style(Self::default_bg())
     }
 
     /// Creates a style using this color as the background and the default foreground color as the
     /// foreground.
-    fn bg_style(self) -> Style {
+    pub const fn bg_style(self) -> Style {
         Self::default_fg().full_style(self)
     }
 
     /// Creates an indexed color.
-    fn to_rgb_color(self) -> Color {
-        let (r, g, b) = self.to_rgb();
-        Color::Rgb(r, g, b)
+    pub const fn to_color(self) -> Color {
+        Color::Indexed(self.index())
     }
 
-    /// Creates an indexed color.
-    fn to_indexed_color(self) -> Color {
-        Color::Indexed(self.into().index())
-    }
-
-    fn default_fg() -> Self {
+    pub const fn default_fg() -> Self {
         Self::light_3()
     }
 
-    fn default_bg() -> Self {
+    pub const fn default_bg() -> Self {
         Self::dark_2()
     }
 
-    fn dark_1() -> Self {
-        Base16Color::Shade(Base16Shade::Dark(Shade::Darkest)).into()
+    pub const fn dark_1() -> Self {
+        Self::Shade(Base16Shade::Dark(Shade::Darkest))
     }
 
-    fn dark_2() -> Self {
-        Base16Color::Shade(Base16Shade::Dark(Shade::Darker)).into()
+    pub const fn dark_2() -> Self {
+        Self::Shade(Base16Shade::Dark(Shade::Darker))
     }
 
-    fn dark_3() -> Self {
-        Base16Color::Shade(Base16Shade::Dark(Shade::Lighter)).into()
+    pub const fn dark_3() -> Self {
+        Self::Shade(Base16Shade::Dark(Shade::Lighter))
     }
 
-    fn dark_4() -> Self {
-        Base16Color::Shade(Base16Shade::Dark(Shade::Lightest)).into()
+    pub const fn dark_4() -> Self {
+        Self::Shade(Base16Shade::Dark(Shade::Lightest))
     }
 
-    fn light_1() -> Self {
-        Base16Color::Shade(Base16Shade::Light(Shade::Darkest)).into()
+    pub const fn light_1() -> Self {
+        Self::Shade(Base16Shade::Light(Shade::Darkest))
     }
 
-    fn light_2() -> Self {
-        Base16Color::Shade(Base16Shade::Light(Shade::Darker)).into()
+    pub const fn light_2() -> Self {
+        Self::Shade(Base16Shade::Light(Shade::Darker))
     }
 
-    fn light_3() -> Self {
-        Base16Color::Shade(Base16Shade::Light(Shade::Lighter)).into()
+    pub const fn light_3() -> Self {
+        Self::Shade(Base16Shade::Light(Shade::Lighter))
     }
 
-    fn light_4() -> Self {
-        Base16Color::Shade(Base16Shade::Light(Shade::Lightest)).into()
+    pub const fn light_4() -> Self {
+        Self::Shade(Base16Shade::Light(Shade::Lightest))
     }
 }

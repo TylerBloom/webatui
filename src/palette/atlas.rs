@@ -1,4 +1,12 @@
+use enum_dispatch::enum_dispatch;
+
 use super::create_palette;
+
+#[enum_dispatch(Base16Palette)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AtlasPalette {
+    Atlas(Atlas),
+}
 
 create_palette! {
     Atlas,

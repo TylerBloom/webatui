@@ -1,4 +1,23 @@
+use enum_dispatch::enum_dispatch;
+
 use super::create_palette;
+
+#[enum_dispatch(Base16Palette)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DefaultPalette {
+    Cupcake,
+    DefaultDark,
+    DefaultLight,
+    Eighties,
+    Mocha,
+    Ocean,
+}
+
+impl Default for DefaultPalette {
+    fn default() -> Self {
+        Self::DefaultDark(DefaultDark::default())
+    }
+}
 
 create_palette! {
     Cupcake,

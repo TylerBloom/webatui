@@ -79,3 +79,4 @@ ratatui = { version = "0.25", default-features = false }
 web-sys = { version = "0.3", features = ["Window", "Screen", "TouchEvent", "TouchList", "Touch"] }
 yew = { version = "0.21", features = ["csr"] }
 hex-literal = "0.4.1"
+enum_dispatch = "0.3"

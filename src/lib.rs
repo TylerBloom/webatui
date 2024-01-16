@@ -7,6 +7,7 @@
 use std::{cell::RefCell, cmp::Ordering, rc::Rc};
 
 use backend::{DehydratedSpan, YewBackend};
+use prelude::palette::Palette;
 use ratatui::{prelude::Rect, Frame, Terminal};
 use touch_scroll::TouchScroll;
 use web_sys::{
@@ -17,8 +18,8 @@ use web_sys::{
 use yew::{Component, Context, Properties};
 
 pub mod backend;
-pub mod prelude;
 pub mod palette;
+pub mod prelude;
 mod touch_scroll;
 
 /// A container for a TUI app that renders to HTML.
@@ -55,12 +56,20 @@ impl<M> From<M> for WebTermMessage<M> {
 /// In the public API because of the component impl of WebTerminal
 #[derive(Properties, PartialEq)]
 pub struct WebTermProps<M: PartialEq> {
-    pub inner: M,
+    inner: M,
+    palette: Palette,
 }
 
 impl<M: PartialEq> WebTermProps<M> {
     pub fn new(inner: M) -> Self {
-        Self { inner }
+        Self {
+            inner,
+            palette: Palette::default(),
+        }
+    }
+
+    pub fn new_with_palette(inner: M, palette: Palette) -> Self {
+        Self { inner, palette }
     }
 }
 
@@ -106,7 +115,8 @@ impl<A: TerminalApp> Component for WebTerminal<A> {
     fn create(ctx: &yew::Context<Self>) -> Self {
         let mut app = ctx.props().inner.clone();
         app.setup(ctx);
-        let term = RefCell::new(Terminal::new(YewBackend::new()).unwrap());
+        let palette = ctx.props().palette;
+        let term = RefCell::new(Terminal::new(YewBackend::new_with_palette(palette)).unwrap());
         /* ---------- Window callback setup --------- */
         let window = web_sys::window().unwrap();
         // Bind a function to the "on-resize" window event

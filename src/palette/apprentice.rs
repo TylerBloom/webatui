@@ -1,4 +1,12 @@
+use enum_dispatch::enum_dispatch;
+
 use super::create_palette;
+
+#[enum_dispatch(Base16Palette)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ApprenticePalette {
+    Apprentice(Apprentice),
+}
 
 create_palette! {
     Apprentice,

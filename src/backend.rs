@@ -7,11 +7,11 @@ use ratatui::{
     prelude::{Backend, Rect},
     style::{Color, Modifier, Styled},
 };
-use std::{borrow::Cow, io::Result, marker::PhantomData};
-use web_sys::{wasm_bindgen::JsValue, MouseEvent, console};
+use std::{borrow::Cow, io::Result};
+use web_sys::{wasm_bindgen::JsValue, MouseEvent};
 use yew::{html, Callback, Html};
 
-use crate::palette::{Base16Color, Palette, default::DefaultDark};
+use crate::palette::{Palette, Base16Palette, Base16Color};
 
 /// The backend used to render text to HTML.
 /// The backend used to take ratatui widgets and render them into HTML. This is achieved through a
@@ -34,11 +34,11 @@ use crate::palette::{Base16Color, Palette, default::DefaultDark};
 /// terminal and then calling `WebTerm::hydrate`. The HTML that is returned from this method is
 /// hydrated and ready to serve.
 #[derive(Debug)]
-pub struct YewBackend<P = DefaultDark> {
+pub struct YewBackend {
     buffer: Vec<Vec<Cell>>,
     pre_hydrated: Vec<Vec<TermSpan>>,
     rendered: Html,
-    marker: PhantomData<P>,
+    palette: Palette,
 }
 
 /// The intermediate representation used for the hydration process.
@@ -106,17 +106,24 @@ impl Default for YewBackend {
 
 const HYDRATION: Modifier = Modifier::SLOW_BLINK;
 
-impl<P> YewBackend<P>
-where
-    P: Palette,
-{
+impl YewBackend {
     /// The constructor for the terminal.
     pub fn new() -> Self {
         Self {
             buffer: Self::get_sized_buffer(),
             pre_hydrated: Vec::new(),
             rendered: Html::default(),
-            marker: PhantomData,
+            palette: Palette::default(),
+        }
+    }
+
+    /// The constructor for the terminal.
+    pub fn new_with_palette(palette: Palette) -> Self {
+        Self {
+            buffer: Self::get_sized_buffer(),
+            pre_hydrated: Vec::new(),
+            rendered: Html::default(),
+            palette,
         }
     }
 
@@ -187,7 +194,7 @@ where
             for span in line {
                 match span {
                     TermSpan::Plain((fg, bg), mods, text) => {
-                        inner.push(create_span::<P>(fg, bg, mods, &text))
+                        inner.push(create_span(&self.palette, fg, bg, mods, &text))
                     }
                     TermSpan::Dehydrated(mut span) => {
                         hydrator(&mut span);
@@ -201,7 +208,7 @@ where
                             on_click,
                             hyperlink,
                         } = interaction;
-                        let mut element = create_span_with_callback::<P>(fg, bg, mods, &text, on_click);
+                        let mut element = create_span_with_callback(&self.palette, fg, bg, mods, &text, on_click);
                         if let Some(link) = hyperlink {
                             element = html! { <a href = { link } target = "_blank" style="text-decoration:none"> { element } </a> };
                         }
@@ -211,7 +218,7 @@ where
             }
             buffer.push(html! { <pre> { for inner.drain(0..) } </pre> })
         }
-        html! { <div> { for buffer.into_iter() } </div> }
+        html! { <div style="width: fit-content; block-size: fit-content; margin: auto;"> { for buffer.into_iter() } </div> }
     }
 
     pub fn resize_buffer(&mut self) {
@@ -282,33 +289,29 @@ impl Backend for YewBackend {
     }
 }
 
-fn create_span<P: Palette>(fg: Color, bg: Color, mods: Modifier, text: &str) -> Html {
-    create_span_with_callback::<P>(fg, bg, mods, text, None)
+fn create_span(p: &Palette, fg: Color, bg: Color, mods: Modifier, text: &str) -> Html {
+    create_span_with_callback(p, fg, bg, mods, text, None)
 }
 
-fn create_span_with_callback<P: Palette>(
+fn create_span_with_callback(
+    p: &Palette,
     fg: Color,
     bg: Color,
     mods: Modifier,
     text: &str,
     cb: Option<Callback<MouseEvent>>,
 ) -> Html {
-    console::log_1(&format!("Foreground: {fg:?}").into());
-    let fg = to_css_color::<P>(fg).unwrap_or_default();
-    console::log_1(&format!("Foreground: {fg:?}").into());
-    console::log_1(&format!("Background: {bg:?}").into());
-    let bg = to_css_color::<P>(bg).unwrap_or_default();
-    console::log_1(&format!("Background: {bg:?}").into());
+    let fg = to_css_color(p, fg).unwrap_or_else(|| p.to_hex_str(Base16Color::default_fg()).into());
+    let bg = to_css_color(p, bg).unwrap_or_else(|| p.to_hex_str(Base16Color::default_bg()).into());
     let mut style = format!("color: {fg}; background-color: {bg};");
     extend_css(mods, &mut style);
-    console::log_1(&format!("Style: {style:?}").into());
     match cb {
         Some(cb) => html! { <span style={ style } onclick = { cb }> { text } </span> },
         None => html! { <span style={ style }> { text } </span> },
     }
 }
 
-fn to_css_color<P: Palette>(c: Color) -> Option<Cow<'static, str>> {
+fn to_css_color(p: &Palette, c: Color) -> Option<Cow<'static, str>> {
     match c {
         Color::Reset => None,
         Color::Black => Some("black".into()),
@@ -328,7 +331,7 @@ fn to_css_color<P: Palette>(c: Color) -> Option<Cow<'static, str>> {
         Color::LightCyan => Some("lightcyan".into()),
         Color::White => Some("white".into()),
         Color::Rgb(r, g, b) => Some(format!("#{r:X}{g:X}{b:X}").into()),
-        Color::Indexed(i) => Some(P::to_rgb_str(Base16Color::from_index(i).into()).into()),
+        Color::Indexed(i) => Some(p.to_hex_str(Base16Color::from_index(i)).into()),
     }
 }
 

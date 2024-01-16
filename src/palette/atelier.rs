@@ -1,4 +1,31 @@
+use enum_dispatch::enum_dispatch;
+
 use super::create_palette;
+
+#[enum_dispatch(Base16Palette)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AtelierPalette {
+    Cave(Cave),
+    CaveLight(CaveLight),
+    Dune(Dune),
+    DuneLight(DuneLight),
+    Estuary(Estuary),
+    EstuaryLight(EstuaryLight),
+    Forest(Forest),
+    ForestLight(ForestLight),
+    Heath(Heath),
+    HeathLight(HeathLight),
+    Lakeside(Lakeside),
+    LakesideLight(LakesideLight),
+    Plateau(Plateau),
+    PlateauLight(PlateauLight),
+    Savanna(Savanna),
+    SavannaLight(SavannaLight),
+    Seaside(Seaside),
+    SeasideLight(SeasideLight),
+    SulphurPool(SulphurPool),
+    SulphurPoolLight(SulphurPoolLight),
+}
 
 create_palette! {
     Cave,

@@ -1,7 +1,21 @@
+use enum_dispatch::enum_dispatch;
+
 use super::create_palette;
 
+#[enum_dispatch(Base16Palette)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GruvboxPalette {
+    DarkHard,
+    DarkMedium,
+    DarkPale,
+    DarkSoft,
+    LightHard,
+    LightMedium,
+    LightSoft,
+}
+
 create_palette! {
-    GruvboxDarkHard,
+    DarkHard,
     "1d2021",
     "3c3836",
     "504945",
@@ -21,7 +35,7 @@ create_palette! {
 }
 
 create_palette! {
-    GruvboxDarkMedium,
+    DarkMedium,
     "282828",
     "3c3836",
     "504945",
@@ -41,7 +55,7 @@ create_palette! {
 }
 
 create_palette! {
-    GruvboxDarkPale,
+    DarkPale,
     "262626",
     "3a3a3a",
     "4e4e4e",
@@ -61,7 +75,7 @@ create_palette! {
 }
 
 create_palette! {
-    GruvboxDarkSoft,
+    DarkSoft,
     "32302f",
     "3c3836",
     "504945",
@@ -81,7 +95,7 @@ create_palette! {
 }
 
 create_palette! {
-    GruvboxLightHard,
+    LightHard,
     "f9f5d7",
     "ebdbb2",
     "d5c4a1",
@@ -101,7 +115,7 @@ create_palette! {
 }
 
 create_palette! {
-    GruvboxLightMedium,
+    LightMedium,
     "fbf1c7",
     "ebdbb2",
     "d5c4a1",
@@ -121,7 +135,7 @@ create_palette! {
 }
 
 create_palette! {
-    GruvboxLightSoft,
+    LightSoft,
     "f2e5bc",
     "ebdbb2",
     "d5c4a1",
