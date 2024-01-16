@@ -7,7 +7,7 @@
 use std::{cell::RefCell, cmp::Ordering, rc::Rc};
 
 use backend::{DehydratedSpan, YewBackend};
-use prelude::palette::Palette;
+use base16_palettes::Palette;
 use ratatui::{prelude::Rect, Frame, Terminal};
 use touch_scroll::TouchScroll;
 use web_sys::{
@@ -18,7 +18,6 @@ use web_sys::{
 use yew::{Component, Context, Properties};
 
 pub mod backend;
-pub mod palette;
 pub mod prelude;
 mod touch_scroll;
 

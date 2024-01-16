@@ -2,6 +2,7 @@
 //  - Improve the calculations for the character grid.
 //  - Explicit set font size, margins, etc (we can't rely on the user defining CSS for us)
 
+use base16_palettes::{Palette, Base16Palette, Base16Color};
 use ratatui::{
     buffer::Cell,
     prelude::{Backend, Rect},
@@ -10,8 +11,6 @@ use ratatui::{
 use std::{borrow::Cow, io::Result};
 use web_sys::{wasm_bindgen::JsValue, MouseEvent};
 use yew::{html, Callback, Html};
-
-use crate::palette::{Palette, Base16Palette, Base16Color};
 
 /// The backend used to render text to HTML.
 /// The backend used to take ratatui widgets and render them into HTML. This is achieved through a
