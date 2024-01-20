@@ -72,6 +72,21 @@ impl<M: PartialEq> WebTermProps<M> {
     }
 }
 
+pub struct TermContext<'a, A: TerminalApp> {
+    ctx: &'a Context<WebTerminal<A>>,
+    term: &'a mut Terminal<YewBackend>,
+}
+
+impl<'a, A: TerminalApp> TermContext<'a, A> {
+    pub fn terminal(&mut self) -> &mut Terminal<YewBackend> {
+        self.term
+    }
+
+    pub fn ctx(&self) -> &Context<WebTerminal<A>> {
+        self.ctx
+    }
+}
+
 /// The core user-facing abstraction of this crate. A terminal app is a type that can be wrapped by
 /// a [`WebTerminal`] and be displayed by Yew.
 ///
@@ -96,7 +111,7 @@ pub trait TerminalApp: 'static + Clone + PartialEq {
     }
 
     /// Updates the app with a message.
-    fn update(&mut self, ctx: &Context<WebTerminal<Self>>, msg: Self::Message) -> bool;
+    fn update(&mut self, ctx: TermContext<'_, Self>, msg: Self::Message) -> bool;
 
     /// Takes a Ratatui [`Frame`] and renders widgets onto it.
     fn render(&self, area: Rect, frame: &mut Frame<'_>);
@@ -105,6 +120,30 @@ pub trait TerminalApp: 'static + Clone + PartialEq {
     /// hyperlinks, etc.
     #[allow(unused_variables)]
     fn hydrate(&self, ctx: &Context<WebTerminal<Self>>, span: &mut DehydratedSpan) {}
+}
+
+impl<A: Default + TerminalApp> WebTerminal<A> {
+    pub fn render() {
+        yew::Renderer::<Self>::new().render();
+    }
+}
+
+impl<A: Default> Default for WebTerminal<A> {
+    fn default() -> Self {
+        Self {
+            app: A::default(),
+            term: RefCell::new(Terminal::new(YewBackend::new()).unwrap()),
+        }
+    }
+}
+
+impl<M: PartialEq + Default> Default for WebTermProps<M> {
+    fn default() -> Self {
+        Self {
+            inner: M::default(),
+            palette: Palette::default(),
+        }
+    }
 }
 
 impl<A: TerminalApp> Component for WebTerminal<A> {
@@ -180,6 +219,10 @@ impl<A: TerminalApp> Component for WebTerminal<A> {
     }
 
     fn update(&mut self, ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
+        let ctx = TermContext {
+            ctx,
+            term: self.term.get_mut(),
+        };
         match msg {
             WebTermMessage::Inner(msg) => self.app.update(ctx, msg),
             WebTermMessage::Scrolled(dir) => self.app.scroll(dir),
@@ -194,7 +237,6 @@ impl<A: TerminalApp> Component for WebTerminal<A> {
         let mut term = self.term.borrow_mut();
         let area = term.size().unwrap();
         term.draw(|frame| self.app.render(area, frame)).unwrap();
-        term.backend_mut()
-            .hydrate(|span| self.app.hydrate(ctx, span))
+        term.backend_mut().hydrate(|span| self.app.hydrate(ctx, span))
     }
 }

@@ -2,14 +2,14 @@
 //  - Improve the calculations for the character grid.
 //  - Explicit set font size, margins, etc (we can't rely on the user defining CSS for us)
 
-use base16_palettes::{Palette, Base16Palette, Base16Color};
+use base16_palettes::{Base16Accent, Base16Color, Base16Palette, Base16Shade, Palette, Shade};
 use ratatui::{
     buffer::Cell,
     prelude::{Backend, Rect},
-    style::{Color, Modifier, Styled},
+    style::{Color, Modifier, Style, Styled},
 };
 use std::{borrow::Cow, io::Result};
-use web_sys::{wasm_bindgen::JsValue, MouseEvent};
+use web_sys::{console, wasm_bindgen::JsValue, CssStyleSheet, MouseEvent};
 use yew::{html, Callback, Html};
 
 /// The backend used to render text to HTML.
@@ -108,22 +108,56 @@ const HYDRATION: Modifier = Modifier::SLOW_BLINK;
 impl YewBackend {
     /// The constructor for the terminal.
     pub fn new() -> Self {
-        Self {
+        let digest = Self {
             buffer: Self::get_sized_buffer(),
             pre_hydrated: Vec::new(),
             rendered: Html::default(),
             palette: Palette::default(),
-        }
+        };
+        digest.refresh_body_bg();
+        digest
     }
 
     /// The constructor for the terminal.
     pub fn new_with_palette(palette: Palette) -> Self {
-        Self {
-            buffer: Self::get_sized_buffer(),
-            pre_hydrated: Vec::new(),
-            rendered: Html::default(),
-            palette,
+        let mut digest = Self::new();
+        digest.update_palette(palette);
+        digest
+    }
+
+    /// Sets the active style sheet's background color to the default terminal background color.
+    /// This helps the terminal area blend into the unrendered/non-terminal areas
+    pub(crate) fn refresh_body_bg(&self) {
+        let styles = web_sys::window()
+            .unwrap()
+            .document()
+            .unwrap()
+            .style_sheets();
+        let index = styles.length().saturating_sub(1);
+        let style = styles.get(index).unwrap();
+        let css = CssStyleSheet::from(JsValue::from(style));
+        let rules = css.css_rules().unwrap();
+        let index = (0..rules.length())
+            .filter_map(|i| rules.get(i).map(|r| (i, r)))
+            .find_map(|(i, r)| {
+                console::log_1(&r.css_text().into());
+                r.css_text()
+                    .starts_with("body { background-color: ").then_some(i)
+            });
+        if let Some(i) = index {
+            css.delete_rule(i).unwrap();
         }
+        let text = format!(
+            "body {{ background-color: {}; }}",
+            self.palette.to_hex_str(Base16Color::default_bg())
+        );
+        css.insert_rule(&text).unwrap();
+    }
+
+    /// Updates the palette used to render indexed colors.
+    pub fn update_palette(&mut self, palette: Palette) {
+        self.palette = palette;
+        self.refresh_body_bg();
     }
 
     fn get_sized_buffer() -> Vec<Vec<Cell>> {
@@ -207,7 +241,8 @@ impl YewBackend {
                             on_click,
                             hyperlink,
                         } = interaction;
-                        let mut element = create_span_with_callback(&self.palette, fg, bg, mods, &text, on_click);
+                        let mut element =
+                            create_span_with_callback(&self.palette, fg, bg, mods, &text, on_click);
                         if let Some(link) = hyperlink {
                             element = html! { <a href = { link } target = "_blank" style="text-decoration:none"> { element } </a> };
                         }
@@ -215,7 +250,7 @@ impl YewBackend {
                     }
                 }
             }
-            buffer.push(html! { <pre> { for inner.drain(0..) } </pre> })
+            buffer.push(html! { <pre style="margin: 0px"> { for inner.drain(0..) } </pre> })
         }
         html! { <div style="width: fit-content; block-size: fit-content; margin: auto;"> { for buffer.into_iter() } </div> }
     }
@@ -385,6 +420,67 @@ pub trait NeedsHydration: Sized + Styled {
 }
 
 impl<T> NeedsHydration for T where T: Styled {}
+
+/// An abstraction to allow for conversion between base16 colors and ratatui `Color`
+pub trait Base16Style {
+    fn default_style() -> Style;
+}
+
+impl Base16Style for Base16Color {
+    fn default_style() -> Style {
+        Style::new()
+            .fg(Base16Color::default_fg().to_color())
+            .bg(Base16Color::default_bg().to_color())
+    }
+}
+
+/// An abstraction to allow for conversion between base16 colors and ratatui `Color`
+pub trait ToIndexedColor: Copy {
+    fn color_index(self) -> u8;
+
+    fn to_color(self) -> Color {
+        Color::Indexed(self.color_index())
+    }
+}
+
+impl ToIndexedColor for Base16Color {
+    fn color_index(self) -> u8 {
+        match self {
+            Base16Color::Shade(shade) => shade.color_index(),
+            Base16Color::Accent(acc) => acc.color_index(),
+        }
+    }
+}
+
+impl ToIndexedColor for Base16Shade {
+    fn color_index(self) -> u8 {
+        match self {
+            Base16Shade::Dark(Shade::Darkest) => 0,
+            Base16Shade::Dark(Shade::Darker) => 1,
+            Base16Shade::Dark(Shade::Lighter) => 2,
+            Base16Shade::Dark(Shade::Lightest) => 3,
+            Base16Shade::Light(Shade::Darkest) => 4,
+            Base16Shade::Light(Shade::Darker) => 5,
+            Base16Shade::Light(Shade::Lighter) => 6,
+            Base16Shade::Light(Shade::Lightest) => 7,
+        }
+    }
+}
+
+impl ToIndexedColor for Base16Accent {
+    fn color_index(self) -> u8 {
+        match self {
+            Base16Accent::Accent00 => 8,
+            Base16Accent::Accent01 => 9,
+            Base16Accent::Accent02 => 10,
+            Base16Accent::Accent03 => 11,
+            Base16Accent::Accent04 => 12,
+            Base16Accent::Accent05 => 13,
+            Base16Accent::Accent06 => 14,
+            Base16Accent::Accent07 => 15,
+        }
+    }
+}
 
 /// Extends a CSS style string to include the necessary segments for the current modifiers.
 fn extend_css(mods: Modifier, css: &mut String) {
