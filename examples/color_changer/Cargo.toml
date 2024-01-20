@@ -1,0 +1,10 @@
+[package]
+name = "hello-world"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+webatui = { path = "../../" }
+ratatui = { version = "0.25", default-features = false, features = ["all-widgets"] }
+base16-palettes = { version = "0.1", features = ["gruvbox"] }
+yew = "0.21"
