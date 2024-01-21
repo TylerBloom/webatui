@@ -27,7 +27,7 @@ Once you have wrapped your head around that (or just gotten it to run), come bac
 
 For basic apps, add Ratatui and Webatui as dependencies.
 Webatui handles nearly all of the Yew-related details, but your app will use ratatui to render the text.
-See the [hello world example](...) to see how to turn your Yew hello world example into a Webatui hello world.
+See the hello world example to see how to turn your Yew hello world example into a Webatui hello world.
 
 There are a few important details.
 Webatui handrolls most of its own CSS; however, you must use a monospace font.

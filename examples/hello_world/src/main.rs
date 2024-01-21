@@ -1,6 +1,5 @@
 use ratatui::{prelude::*, widgets::Paragraph};
 use webatui::prelude::*;
-use yew::prelude::*;
 
 fn main() {
     WebTerminal::<HelloWorld>::render()
@@ -14,7 +13,7 @@ impl TerminalApp for HelloWorld {
     type Message = ();
 
     // Yew is message-based (reactive), but this is a static example, so this method is not needed
-    fn update(&mut self, _ctx: &Context<WebTerminal<Self>>, _msg: Self::Message) -> bool {
+    fn update(&mut self, _ctx: TermContext<'_, Self>, _msg: Self::Message) -> bool {
         false
     }
 

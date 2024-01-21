@@ -25,7 +25,7 @@ impl TerminalApp for Counter {
     type Message = CounterMsg;
 
     // Yew is message-based (reactive), but this is a static example, so this method is not needed
-    fn update(&mut self, _ctx: &Context<WebTerminal<Self>>, msg: Self::Message) -> bool {
+    fn update(&mut self, _ctx: TermContext<'_, Self>, msg: Self::Message) -> bool {
         match msg {
             CounterMsg::Inc => self.0 += 1,
             CounterMsg::Dec => self.0 = self.0.saturating_sub(1),
