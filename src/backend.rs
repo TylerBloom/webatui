@@ -142,7 +142,8 @@ impl YewBackend {
             .find_map(|(i, r)| {
                 console::log_1(&r.css_text().into());
                 r.css_text()
-                    .starts_with("body { background-color: ").then_some(i)
+                    .starts_with("body { background-color: ")
+                    .then_some(i)
             });
         if let Some(i) = index {
             css.delete_rule(i).unwrap();

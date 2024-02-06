@@ -237,6 +237,7 @@ impl<A: TerminalApp> Component for WebTerminal<A> {
         let mut term = self.term.borrow_mut();
         let area = term.size().unwrap();
         term.draw(|frame| self.app.render(area, frame)).unwrap();
-        term.backend_mut().hydrate(|span| self.app.hydrate(ctx, span))
+        term.backend_mut()
+            .hydrate(|span| self.app.hydrate(ctx, span))
     }
 }
