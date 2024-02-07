@@ -2,6 +2,12 @@
 name = "webatui"
 version = "0.1.0"
 edition = "2021"
+license = "LGPL-2.1"
+authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
+categories = ["wasm", "tui"]
+description = "Run your TUI apps in the broswer!"
+readme = "README.md"
+repository = "https://github.com/TylerBloom/webatui"
 
 [dependencies]
 base16-palettes = "0.1.0"
