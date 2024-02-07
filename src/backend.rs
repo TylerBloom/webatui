@@ -13,25 +13,7 @@ use web_sys::{console, wasm_bindgen::JsValue, CssStyleSheet, MouseEvent};
 use yew::{html, Callback, Html};
 
 /// The backend used to render text to HTML.
-/// The backend used to take ratatui widgets and render them into HTML. This is achieved through a
-/// three-step rendering process.
-///
-/// First is the text rendering step. Here, a cell grid is populated from a ratatui rendering. This
-/// grid is, in essense, the grid of characters as it will show up in the broswer. Once the text is
-/// rendered, it is parsed into spans for use in the second step.
-///
-/// Second is the hydration step. Ratatui was not meant to run in the browser, so it does not
-/// natively support associating callbacks and such with widgets. The hydration process is where
-/// that occurs. Certain cell modifiers are used as flags to inform the renderer that additional
-/// data might be needed. This provides an opportunity for the app to inject data such as callback
-/// into the spans created after the text rendering step.
-///
-/// Finally, once the data has had a chance to hydrate, it is rendered into HTML, cached, and
-/// served.
-///
-/// From the user's perspective, this process only involves rendering a frame in the Ratatui
-/// terminal and then calling `WebTerm::hydrate`. The HTML that is returned from this method is
-/// hydrated and ready to serve.
+/// The backend used to take ratatui widgets and render them into HTML.
 #[derive(Debug)]
 pub struct YewBackend {
     buffer: Vec<Vec<Cell>>,
@@ -50,7 +32,7 @@ enum TermSpan {
     Dehydrated(DehydratedSpan),
 }
 
-/// A span that might need additional data such as a callback or hyperlink
+/// A span that might need additional data such as a callback or hyperlink.
 #[derive(Debug, Default)]
 pub struct DehydratedSpan {
     style: (Color, Color),
@@ -76,9 +58,14 @@ impl DehydratedSpan {
         }
     }
 
-    /// Returns a reference to the inner style.
+    /// Returns a reference to the foreground and background colors.
     pub fn style(&self) -> &(Color, Color) {
         &self.style
+    }
+
+    /// Returns a reference to the modifiers for the span.
+    pub fn modifiers(&self) -> &Modifier {
+        &self.mods
     }
 
     /// Returns a reference to the inner text.
@@ -103,7 +90,10 @@ impl Default for YewBackend {
     }
 }
 
-const HYDRATION: Modifier = Modifier::SLOW_BLINK;
+/// When added as a modifier to a style, the styled element is marked as "in need of hydration" by
+/// the rendering backend. Spans generated from the element will be given back to the terminal app
+/// before finally being rendered.
+pub const HYDRATION: Modifier = Modifier::SLOW_BLINK;
 
 impl YewBackend {
     /// The constructor for the terminal.
@@ -218,7 +208,7 @@ impl YewBackend {
         }
     }
 
-    pub fn hydrate<F>(&mut self, mut hydrator: F) -> Html
+    pub(crate) fn hydrate<F>(&mut self, mut hydrator: F) -> Html
     where
         F: FnMut(&mut DehydratedSpan),
     {
@@ -256,7 +246,7 @@ impl YewBackend {
         html! { <div style="width: fit-content; block-size: fit-content; margin: auto;"> { for buffer.into_iter() } </div> }
     }
 
-    pub fn resize_buffer(&mut self) {
+    pub(crate) fn resize_buffer(&mut self) {
         let (width, height) = if is_mobile() {
             get_screen_size()
         } else {
@@ -377,15 +367,7 @@ pub fn get_window_size() -> (u16, u16) {
     (w / 10, h / 20)
 }
 
-/*
-/// Calculates the number of characters that can fit in the Ratatui buffer.
-pub fn get_max_window_size() -> (u16, u16) {
-    let (w, h) = get_raw_window_size();
-    (w / 10, u16::MAX / ( w / 10 ))
-}
-*/
-
-pub fn get_raw_window_size() -> (u16, u16) {
+pub(crate) fn get_raw_window_size() -> (u16, u16) {
     fn js_val_to_int<I: TryFrom<usize>>(val: JsValue) -> Option<I> {
         val.as_f64().and_then(|i| I::try_from(i as usize).ok())
     }
@@ -400,7 +382,7 @@ pub fn get_raw_window_size() -> (u16, u16) {
         .unwrap_or((120, 120))
 }
 
-pub fn get_raw_screen_size() -> (i32, i32) {
+pub(crate) fn get_raw_screen_size() -> (i32, i32) {
     let s = web_sys::window().unwrap().screen().unwrap();
     (s.width().unwrap(), s.height().unwrap())
 }
@@ -414,6 +396,12 @@ pub fn get_screen_size() -> (u16, u16) {
 
 /// An abstraction to allow for method chain to mark a something as hydratable
 pub trait NeedsHydration: Sized + Styled {
+    /// Marks a styled items as "in need of hydration". This communicates to the backend that the
+    /// [`TerminalApp`](crate::TerminalApp) needs to provide additional information, such as a callback, in order to
+    /// fully render.
+    ///
+    /// NOTE: If the item that is being styled spans multiple lines, then the backend will create
+    /// multiple spans that "need hydration". These spans will be past to the app individually.
     fn to_hydrate(self) -> Self::Item {
         let style = self.style().add_modifier(HYDRATION);
         self.set_style(style)
@@ -422,8 +410,10 @@ pub trait NeedsHydration: Sized + Styled {
 
 impl<T> NeedsHydration for T where T: Styled {}
 
-/// An abstraction to allow for conversion between base16 colors and ratatui `Color`
+/// An abstraction to allow for conversion between base16 colors and ratatui `Color`.
 pub trait Base16Style {
+    /// Each Base16 style defines a default foreground and background color. This method returns a
+    /// style that selects those colors as its forground and background, respectively.
     fn default_style() -> Style;
 }
 
@@ -437,8 +427,11 @@ impl Base16Style for Base16Color {
 
 /// An abstraction to allow for conversion between base16 colors and ratatui `Color`
 pub trait ToIndexedColor: Copy {
+    /// Each color in a base16 pallete maps each color to an integer (0..=15). This method returns
+    /// that integer.
     fn color_index(self) -> u8;
 
+    /// Returns a color by using the color's index.
     fn to_color(self) -> Color {
         Color::Indexed(self.color_index())
     }
@@ -498,6 +491,6 @@ fn extend_css(mods: Modifier, css: &mut String) {
 }
 
 // TODO: Improve this...
-pub fn is_mobile() -> bool {
+pub(crate) fn is_mobile() -> bool {
     get_raw_screen_size().0 < 550
 }
