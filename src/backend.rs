@@ -382,7 +382,8 @@ pub(crate) fn get_raw_window_size() -> (u16, u16) {
         .unwrap_or((120, 120))
 }
 
-pub(crate) fn get_raw_screen_size() -> (i32, i32) {
+/// Calculates the number of pixels that can fit in the window.
+pub fn get_raw_screen_size() -> (i32, i32) {
     let s = web_sys::window().unwrap().screen().unwrap();
     (s.width().unwrap(), s.height().unwrap())
 }
