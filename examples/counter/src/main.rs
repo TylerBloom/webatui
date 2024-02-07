@@ -7,7 +7,7 @@ use webatui::prelude::*;
 use yew::prelude::*;
 
 fn main() {
-    WebTerminal::<Counter>::render()
+    run_tui(Counter(0));
 }
 
 #[derive(Clone, Default, PartialEq)]

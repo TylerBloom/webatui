@@ -13,7 +13,7 @@ use webatui::prelude::*;
 use yew::prelude::*;
 
 fn main() {
-    WebTerminal::<PaletteSelector>::render()
+    run_tui(PaletteSelector);
 }
 
 #[derive(Clone, Default, PartialEq)]

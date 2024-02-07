@@ -2,7 +2,7 @@ use ratatui::{prelude::*, widgets::Paragraph};
 use webatui::prelude::*;
 
 fn main() {
-    WebTerminal::<HelloWorld>::render()
+    run_tui(HelloWorld)
 }
 
 #[derive(Clone, Default, PartialEq)]
