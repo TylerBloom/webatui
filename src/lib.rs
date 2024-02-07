@@ -14,7 +14,11 @@
 //! is as easy as possible. To get started, create a struct that will hold your app's logic,
 //! implement the [`TerminalApp`] trait for it, and run the [`run_tui`] function with an instance
 //! of your app.
-//! ```rust
+//! ```no_run
+//! use ratatui::{prelude::*, widgets::*};
+//! use webatui::prelude::*;
+//!
+//! #[derive(PartialEq, Clone)]
 //! struct MyApp {
 //!   title: String,
 //! }
@@ -24,10 +28,10 @@
 //!     type Message = ();
 //!
 //!     // This simple app does not update
-//!     fn update(&mut self, _: TermContext<'_, Self>, _: Self::Message) -> bool { }
+//!     fn update(&mut self, _: TermContext<'_, Self>, _: Self::Message) -> bool { false }
 //!
 //!     fn render(&self, area: Rect, frame: &mut Frame<'_>) {
-//!         let para = Paragraph::new(&self.title);
+//!         let para = Paragraph::new(self.title.as_str());
 //!         frame.render_widget(para, area);
 //!     }
 //! }
