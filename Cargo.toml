@@ -11,6 +11,6 @@ repository = "https://github.com/TylerBloom/webatui"
 
 [dependencies]
 base16-palettes = "0.1.0"
-ratatui = { version = "0.25", default-features = false }
+ratatui = { version = "0.26", default-features = false }
 web-sys = { version = "0.3", features = ["Window", "Screen", "TouchEvent", "TouchList", "Touch", "CssStyleSheet", "StyleSheetList", "CssRuleList", "CssRule"] }
 yew = { version = "0.21", features = ["csr"] }
