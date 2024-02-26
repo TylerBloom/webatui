@@ -9,7 +9,7 @@ use ratatui::{
     style::{Color, Modifier, Style, Styled},
 };
 use std::{borrow::Cow, io::Result};
-use web_sys::{console, wasm_bindgen::JsValue, CssStyleSheet, MouseEvent};
+use web_sys::{wasm_bindgen::JsValue, CssStyleSheet, MouseEvent};
 use yew::{html, Callback, Html};
 
 /// The backend used to render text to HTML.
@@ -130,7 +130,6 @@ impl YewBackend {
         let index = (0..rules.length())
             .filter_map(|i| rules.get(i).map(|r| (i, r)))
             .find_map(|(i, r)| {
-                console::log_1(&r.css_text().into());
                 r.css_text()
                     .starts_with("body { background-color: ")
                     .then_some(i)
