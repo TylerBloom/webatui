@@ -1,6 +1,6 @@
 [![Crates.io](https://img.shields.io/crates/v/webatui.svg)](https://crates.io/crates/webatui)
 [![Documentation](https://docs.rs/webatui/badge.svg)](https://docs.rs/webatui/)
-![GitHub Workflows](https://github.com/TylerBloom/webatui/actions/workflows/ar_ci.yml/badge.svg)
+![GitHub Workflows](https://github.com/TylerBloom/webatui/actions/workflows/ci.yml/badge.svg)
 [![Coverage Status](https://codecov.io/gh/TylerBloom/webatui/branch/main/graph/badge.svg)](https://codecov.io/gh/TylerBloom/webatui)
 ![Maintenance](https://img.shields.io/badge/Maintenance-Actively%20Developed-brightgreen.svg)
 
