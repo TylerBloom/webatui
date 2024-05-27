@@ -32,7 +32,7 @@ jobs:
           crate: cargo-tarpaulin
           version: 'latest'
       - name: Start MongoDB
-        uses: supercharge/mongodb-github-action@v1.10.0
+        uses: supercharge/mongodb-github-action@1.11.0
         with:
           mongodb-version: '6.0'
       - name: Generate code coverage
