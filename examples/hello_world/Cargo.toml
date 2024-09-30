@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 webatui = { path = "../../" }
-ratatui = { version = "0.25", default-features = false, features = ["all-widgets"] }
+ratatui = { version = "0.26", default-features = false, features = ["all-widgets"] }
