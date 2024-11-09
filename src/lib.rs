@@ -281,8 +281,8 @@ impl<A: TerminalApp> Component for WebTerminal<A> {
 
     fn view(&self, ctx: &Context<Self>) -> yew::Html {
         let mut term = self.term.borrow_mut();
-        let area = term.size().unwrap();
-        term.draw(|frame| self.app.render(area, frame)).unwrap();
+        term.draw(|frame| self.app.render(frame.area(), frame))
+            .unwrap();
         term.backend_mut()
             .hydrate(|span| self.app.hydrate(ctx, span))
     }

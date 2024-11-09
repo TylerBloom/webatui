@@ -5,7 +5,8 @@
 use base16_palettes::{Base16Accent, Base16Color, Base16Palette, Base16Shade, Palette, Shade};
 use ratatui::{
     buffer::Cell,
-    prelude::{Backend, Rect},
+    layout::Size,
+    prelude::Backend,
     style::{Color, Modifier, Style, Styled},
 };
 use std::{borrow::Cow, io::Result};
@@ -294,13 +295,11 @@ impl Backend for YewBackend {
         Ok(())
     }
 
-    fn size(&self) -> Result<Rect> {
-        Ok(Rect::new(
-            0,
-            0,
-            self.buffer.first().unwrap().len().saturating_sub(1) as u16,
-            self.buffer.len().saturating_sub(1) as u16,
-        ))
+    fn size(&self) -> Result<Size> {
+        Ok(Size {
+            width: self.buffer.first().unwrap().len().saturating_sub(1) as u16,
+            height: self.buffer.len().saturating_sub(1) as u16,
+        })
     }
 
     fn window_size(&mut self) -> Result<ratatui::backend::WindowSize> {
@@ -310,6 +309,18 @@ impl Backend for YewBackend {
     fn flush(&mut self) -> Result<()> {
         self.prerender();
         Ok(())
+    }
+
+    fn get_cursor_position(&mut self) -> Result<ratatui::prelude::Position> {
+        todo!()
+    }
+
+    fn set_cursor_position<P: Into<ratatui::prelude::Position>>(
+        &mut self,
+        position: P,
+    ) -> Result<()> {
+        let _ = position;
+        todo!()
     }
 }
 
